@@ -1,0 +1,127 @@
+---
+title: "FP_Model"
+author: "Gurjit"
+date: "25/01/2022"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE, comment = NA)
+```
+
+```{r include="FALSE", warning = FALSE}
+
+
+
+
+library(openxlsx);       
+library(ggplot2)
+library(forecast);
+library(DataExplorer);   
+library("ggpubr")
+library(tseries)
+
+```
+
+## Read the given Jewelry consumption Dataset
+
+```{r warning=FALSE}
+
+ setwd("C:/Term5/FP")
+ getwd()
+
+
+
+energy_data <- read.csv("energy_ALL_STATES.csv")
+
+plot_missing(energy_data)
+
+summary(energy_data)
+str(energy_data)
+
+
+
+energy_data$Date<-as.Date(format(energy_data$Date*100+1),"%Y%m%d")
+
+```
+```{r}
+row.has.na <- apply(energy_data, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+```
+
+```{r }
+
+
+
+columns= c("State","Model","RMSE","AIC","BIC")
+df = data.frame(matrix(nrow=1, ncol = length(columns))) 
+colnames(df) = columns
+
+state_lst = unique(energy_data$state)
+
+#removed DC , it has null
+state_lst<- state_lst[-9]
+
+
+for (x in state_lst){
+ 
+
+
+  
+  
+state_data <- subset(energy_data, state==x) 
+
+
+
+
+
+
+state.consumption <-  ts(state_data$consumption ,start=c(2001, 1),frequency=12)
+
+
+train_data1 <- window(state.consumption,end=c(2020,12), frequency=12)
+test_data1 <- window(state.consumption,start=c(2021,1), frequency=12)
+
+ #print(x) 
+ #print(test_data1)
+
+
+arima_fit <- auto.arima(train_data1)
+
+arima_fit.pred <-forecast(arima_fit,h=12)
+
+
+
+
+
+## Accuracy of the Auto model 
+
+
+
+
+new_row = c(x,as.character(arima_fit),accuracy(arima_fit.pred$mean,test_data1)[2],AIC(arima_fit),BIC(arima_fit))
+
+
+df <- rbind(df,new_row)
+
+# save model 
+model_name = paste0(x,"_model.rds")
+
+#saveRDS(auto_final,model_name)
+
+}
+
+
+
+```
+**List state-wise Models & accuracy **
+
+```{r }
+
+df
+
+
+```
+
